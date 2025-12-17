@@ -1,0 +1,16 @@
+<resources>
+    <style name="Theme.MeshTalk" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">#FF6B6B</item>
+        <item name="colorPrimaryVariant">#E74C3C</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">#4ECDC4</item>
+        <item name="colorSecondaryVariant">#3EBDB4</item>
+        <item name="colorOnSecondary">@android:color/black</item>
+        
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+</resources>

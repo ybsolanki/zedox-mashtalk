@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="zedox_red">#FF6B6B</color>
+    <color name="zedox_red_dark">#E74C3C</color>
+    <color name="zedox_teal">#4ECDC4</color>
+    <color name="zedox_teal_dark">#3EBDB4</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="gray_light">#F7F7F7</color>
+    <color name="gray_medium">#666666</color>
+    <color name="emergency_red">#E74C3C</color>
+</resources>
