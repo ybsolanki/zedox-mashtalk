@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">MeshTalk</string>
+    <string name="team_name">ZEDOX</string>
+    <string name="app_tagline">Communication Without Limits</string>
+    <string name="imagine_cup">Imagine Cup 2025</string>
+    
+    <!-- Main -->
+    <string name="discover_devices">Discover Devices</string>
+    <string name="my_devices">My Devices</string>
+    <string name="settings">Settings</string>
+    
+    <!-- About -->
+    <string name="about_title">About MeshTalk</string>
+    <string name="about_text">MeshTalk by Team ZEDOX\nImagine Cup 2025\n\nCommunication Without Limits</string>
+    
+    <!-- Footer -->
+    <string name="footer_text">© 2025 Team ZEDOX</string>
+</resources>
