@@ -1,16 +1,30 @@
-<resources>
-    <style name="Theme.MeshTalk" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Dark Theme for MeshTalk -->
+    <style name="Base.Theme.MeshTalk" parent="Theme.Material3.Dark.NoActionBar">
         <!-- Primary brand color -->
-        <item name="colorPrimary">#FF6B6B</item>
-        <item name="colorPrimaryVariant">#E74C3C</item>
-        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorPrimary">@color/primary_orange</item>
+        <item name="colorPrimaryVariant">@color/accent_orange</item>
+        <item name="colorOnPrimary">@color/white</item>
         
         <!-- Secondary brand color -->
-        <item name="colorSecondary">#4ECDC4</item>
-        <item name="colorSecondaryVariant">#3EBDB4</item>
-        <item name="colorOnSecondary">@android:color/black</item>
+        <item name="colorSecondary">@color/button_find</item>
+        <item name="colorSecondaryVariant">@color/button_settings</item>
+        <item name="colorOnSecondary">@color/black</item>
         
-        <!-- Status bar color -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/dark_background</item>
+        <item name="colorSurface">@color/dark_surface</item>
+        <item name="colorOnBackground">@color/white</item>
+        <item name="colorOnSurface">@color/white</item>
+        
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/black</item>
     </style>
+
+    <style name="Theme.MeshTalk" parent="Base.Theme.MeshTalk" />
 </resources>
