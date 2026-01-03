@@ -1,12 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="zedox_red">#FF6B6B</color>
-    <color name="zedox_red_dark">#E74C3C</color>
-    <color name="zedox_teal">#4ECDC4</color>
-    <color name="zedox_teal_dark">#3EBDB4</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="gray_light">#F7F7F7</color>
-    <color name="gray_medium">#666666</color>
-    <color name="emergency_red">#E74C3C</color>
+    <!-- Dark Theme Colors -->
+    <color name="black">#000000</color>
+    <color name="dark_background">#121212</color>
+    <color name="dark_surface">#1E1E1E</color>
+    <color name="dark_card">#2C2C2C</color>
+    
+    <!-- Brand Colors -->
+    <color name="primary_orange">#FF6B35</color>
+    <color name="accent_orange">#FFA500</color>
+    <color name="light_orange">#FFB366</color>
+    
+    <!-- Text Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="light_gray">#B3B3B3</color>
+    <color name="dark_gray">#666666</color>
+    
+    <!-- Button Colors -->
+    <color name="button_chat">#FF6B35</color>
+    <color name="button_find">#4ECDC4</color>
+    <color name="button_settings">#95E1D3</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#4CAF50</color>
+    <color name="error">#F44336</color>
+    <color name="warning">#FFC107</color>
 </resources>
