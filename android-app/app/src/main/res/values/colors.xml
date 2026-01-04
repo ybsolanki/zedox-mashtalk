@@ -3,6 +3,7 @@
     <!-- Dark Theme Colors -->
     <color name="black">#000000</color>
     <color name="dark_background">#121212</color>
+    <color name="background_dark">#121212</color>
     <color name="dark_surface">#1E1E1E</color>
     <color name="dark_card">#2C2C2C</color>
     
