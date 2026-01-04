@@ -27,4 +27,15 @@
     
     <!-- Footer -->
     <string name="footer_text">© 2025 Team ZEDOX</string>
+    
+    <!-- Chat Activity -->
+    <string name="back">Back</string>
+    <string name="john_doe">John Doe</string>
+    <string name="online">🟢 Online</string>
+    <string name="voice_call">Voice Call</string>
+    <string name="video_call">Video Call</string>
+    <string name="menu">Menu</string>
+    <string name="emoji">Emoji</string>
+    <string name="type_message">Type message...</string>
+    <string name="send">Send</string>
 </resources>
