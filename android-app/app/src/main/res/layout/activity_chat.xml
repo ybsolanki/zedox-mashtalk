@@ -29,9 +29,9 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_revert"
-                android:tint="@color/white"
-                android:contentDescription="Back" />
+                android:src="@drawable/ic_back"
+                app:tint="@color/white"
+                android:contentDescription="@string/back" />
 
             <LinearLayout
                 android:id="@+id/layoutContactInfo"
@@ -46,7 +46,7 @@
                     android:id="@+id/tvContactName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="John Doe"
+                    android:text="@string/john_doe"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/white" />
@@ -55,7 +55,7 @@
                     android:id="@+id/tvContactStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🟢 Online"
+                    android:text="@string/online"
                     android:textSize="12sp"
                     android:textColor="@color/light_gray" />
 
@@ -73,9 +73,9 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/stat_sys_phone_call"
-                    android:tint="@color/white"
-                    android:contentDescription="Voice Call"
+                    android:src="@drawable/ic_voice_call"
+                    app:tint="@color/white"
+                    android:contentDescription="@string/voice_call"
                     android:layout_marginEnd="8dp" />
 
                 <ImageButton
@@ -83,9 +83,9 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/presence_video_online"
-                    android:tint="@color/white"
-                    android:contentDescription="Video Call"
+                    android:src="@drawable/ic_video_call"
+                    app:tint="@color/white"
+                    android:contentDescription="@string/video_call"
                     android:layout_marginEnd="8dp" />
 
                 <ImageButton
@@ -93,9 +93,9 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_more"
-                    android:tint="@color/white"
-                    android:contentDescription="Menu" />
+                    android:src="@drawable/ic_menu"
+                    app:tint="@color/white"
+                    android:contentDescription="@string/menu" />
 
             </LinearLayout>
 
@@ -136,9 +136,9 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_emoticons"
-                android:tint="@color/light_gray"
-                android:contentDescription="Emoji" />
+                android:src="@drawable/ic_emoji"
+                app:tint="@color/light_gray"
+                android:contentDescription="@string/emoji" />
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardInputField"
@@ -157,12 +157,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent"
-                    android:hint="Type message..."
+                    android:hint="@string/type_message"
                     android:textColorHint="@color/light_gray"
                     android:textColor="@color/white"
                     android:padding="12dp"
                     android:maxLines="4"
-                    android:inputType="textCapSentences|textMultiLine" />
+                    android:inputType="textCapSentences|textMultiLine"
+                    android:autofillHints="message" />
 
             </androidx.cardview.widget.CardView>
 
@@ -173,9 +174,9 @@
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:background="@drawable/button_send"
-                android:src="@android:drawable/ic_menu_send"
-                android:tint="@color/white"
-                android:contentDescription="Send" />
+                android:src="@drawable/ic_send"
+                app:tint="@color/white"
+                android:contentDescription="@string/send" />
 
         </RelativeLayout>
 
