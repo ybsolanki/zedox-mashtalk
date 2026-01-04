@@ -27,10 +27,12 @@ public class MainActivity extends AppCompatActivity {
         btnFindDevices = findViewById(R.id.btnFindDevices);
         btnSettings = findViewById(R.id.btnSettings);
         
-        // Start Chat button
+        // Start Chat button - Opens ChatActivity
         btnStartChat.setOnClickListener(v -> {
-            Toast.makeText(this, "Chat feature coming soon!", Toast.LENGTH_SHORT).show();
-            // TODO: Open ChatActivity
+            Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+            intent.putExtra("CONTACT_ID", "demo_contact");
+            intent.putExtra("CONTACT_NAME", "John Doe");
+            startActivity(intent);
         });
         
         // Find Devices button
