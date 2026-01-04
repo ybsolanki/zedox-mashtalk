@@ -3,27 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.zedox.meshtalk">
 
-    <!-- WiFi Direct Permissions -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- Location (required for WiFi Direct on Android 6.0+) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-    <!-- Android 13+ Nearby WiFi Devices -->
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="tiramisu" />
-
-    <!-- Bluetooth Permissions -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    
-    <!-- Android 12+ Bluetooth Permissions -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="31" />
@@ -31,8 +22,6 @@
         tools:targetApi="31" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"
         tools:targetApi="31" />
-
-    <!-- Camera Permission for QR Scanner -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
@@ -45,7 +34,6 @@
         android:theme="@style/Theme.MeshTalk"
         tools:targetApi="31">
 
-        <!-- Main Activity (Launcher) -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -55,12 +43,18 @@
             </intent-filter>
         </activity>
 
-        <!-- Settings Activity -->
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"
             android:label="Settings">
+        </activity>
+
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:label="Chat">
         </activity>
 
     </application>
