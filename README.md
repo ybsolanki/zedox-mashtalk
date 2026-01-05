@@ -450,7 +450,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 **Project Lead:** ybsolanki  
 **GitHub:** [@ybsolanki](https://github.com/ybsolanki)  
 **Repository:** [github.com/ybsolanki/zedox-mashtalk](https://github.com/ybsolanki/zedox-mashtalk)  
-**Email:** [Your email here]
+**Email:** solankiyug41@gmail.com
 
 **For inquiries:**
 - 💼 Partnership opportunities
