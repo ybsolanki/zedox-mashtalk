@@ -125,14 +125,13 @@ zedox-mashtalk/
 │   ├── TEAM.md                 ← Team ZEDOX information
 │   ├── DEVELOPMENT_PLAN.md     ← 20-day sprint plan
 │   ├── TECH_STACK.md           ← Technical details
-│   └── TESTING_STRATEGY.md     ← QA approach
-│
-├── website/                     ← GitHub Pages site
-│   ├── index.html
-│   ├── css/
-│   │   └── style.css
-│   ├── js/
-│   └── assets/
+│   ├── TESTING_STRATEGY.md     ← QA approach
+│   └── website/                ← GitHub Pages site
+│       ├── index.html
+│       ├── css/
+│       │   └── style.css
+│       ├── js/
+│       └── assets/
 │
 └── media/                       ← Screenshots, videos, logos
     ├── screenshots/
