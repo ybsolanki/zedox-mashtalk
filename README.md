@@ -188,7 +188,7 @@ cd zedox-mashtalk/android-app
 
 | Member | Role | Responsibility |
 |--------|------|----------------|
-| **ybsolanki** | Project Lead & AI Integration | Team coordination, AI features, ML Kit integration, strategic decisions |
+| **YUG SOLANKI (ybsolanki)** | Project Lead & AI Integration | Team coordination, AI features, ML Kit integration, strategic decisions |
 | **Meet** | Frontend Developer & Documentation | UI/UX design, website, pitch materials, visual design |
 | **Shubh** | Technical Architect & Device Testing | WiFi Direct, mesh networking, hardware testing, performance optimization |
 | **Manish** | Content Creator & QA Lead | Testing, demo video, documentation, quality assurance |
