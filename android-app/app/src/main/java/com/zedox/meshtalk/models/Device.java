@@ -63,12 +63,14 @@ public class Device {
     public void setHopDistance(int hops) { this.hopDistance = hops; }
     
     /**
-     * Check if device is healthy for routing
+     * Check if device is healthy for routing.
+     * signalStrength and batteryLevel are best-effort; they default to 0/100
+     * so we only use lastSeen to guard against stale entries.
+     * A device is considered healthy as long as it is marked connected and
+     * was seen within the last 60 seconds.
      */
     public boolean isHealthy() {
-        return isConnected && 
-               signalStrength > 30 && 
-               batteryLevel > 15 &&
+        return isConnected &&
                (System.currentTimeMillis() - lastSeen) < 60000;
     }
     

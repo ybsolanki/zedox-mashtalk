@@ -2,7 +2,9 @@ package com.zedox.meshtalk;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -10,6 +12,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.zedox.meshtalk.adapters.MessageAdapter;
 import com.zedox.meshtalk.ai.EmergencyDetector;
 import com.zedox.meshtalk.ai.TranslationService;
@@ -118,18 +122,92 @@ public class ChatActivity extends AppCompatActivity {
     private void setupClickListeners() {
         btnBack.setOnClickListener(v -> finish());
         btnSend.setOnClickListener(v -> sendMessage());
+        btnVoiceCall.setOnClickListener(v -> showCallNotSupportedDialog("Voice"));
+        btnVideoCall.setOnClickListener(v -> showCallNotSupportedDialog("Video"));
+        btnMenu.setOnClickListener(v -> showChatMenu());
+        btnEmoji.setOnClickListener(v -> showEmojiPicker());
+    }
 
-        btnVoiceCall.setOnClickListener(v ->
-                Toast.makeText(this, "Voice call coming soon!", Toast.LENGTH_SHORT).show());
+    /** Show an informative dialog for call features (not available without VoIP stack). */
+    private void showCallNotSupportedDialog(String callType) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(callType + " Call")
+                .setMessage(callType + " calls require a VoIP stack (e.g. WebRTC) and a data connection, "
+                        + "which is not available in offline mesh mode.\n\n"
+                        + "MeshTalk currently supports text messaging over WiFi Direct.")
+                .setPositiveButton("OK", null)
+                .show();
+    }
 
-        btnVideoCall.setOnClickListener(v ->
-                Toast.makeText(this, "Video call coming soon!", Toast.LENGTH_SHORT).show());
+    /** Show a popup menu with chat management actions. */
+    private void showChatMenu() {
+        android.widget.PopupMenu popup = new android.widget.PopupMenu(this, btnMenu);
+        popup.getMenu().add(0, 1, 0, "Clear Chat");
+        popup.getMenu().add(0, 2, 1, "Copy Last Message");
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                clearChat();
+                return true;
+            } else if (item.getItemId() == 2) {
+                copyLastMessage();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
 
-        btnMenu.setOnClickListener(v ->
-                Toast.makeText(this, "Menu options coming soon!", Toast.LENGTH_SHORT).show());
+    private void clearChat() {
+        messageAdapter.setMessages(new ArrayList<>());
+        if (contactId != null) {
+            dbExecutor.execute(() -> db.messageDao().deleteAllMessages());
+        }
+        Toast.makeText(this, "Chat cleared", Toast.LENGTH_SHORT).show();
+    }
 
-        btnEmoji.setOnClickListener(v ->
-                Toast.makeText(this, "Emoji picker coming soon!", Toast.LENGTH_SHORT).show());
+    private void copyLastMessage() {
+        int count = messageAdapter.getItemCount();
+        if (count == 0) {
+            Toast.makeText(this, "No messages to copy", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // MessageAdapter exposes getItem via getMessages; use reflection-free approach
+        String text = messageAdapter.getLastMessageText();
+        if (text != null) {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                    getSystemService(CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("message", text));
+            Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Show the emoji picker bottom sheet. */
+    private void showEmojiPicker() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_emoji, null);
+        dialog.setContentView(sheetView);
+
+        int[] emojiIds = {
+            R.id.emoji1, R.id.emoji2, R.id.emoji3, R.id.emoji4, R.id.emoji5,
+            R.id.emoji6, R.id.emoji7, R.id.emoji8, R.id.emoji9, R.id.emoji10,
+            R.id.emoji11, R.id.emoji12, R.id.emoji13, R.id.emoji14, R.id.emoji15,
+            R.id.emoji16, R.id.emoji17, R.id.emoji18, R.id.emoji19, R.id.emoji20,
+            R.id.emoji21
+        };
+
+        for (int id : emojiIds) {
+            Button btn = sheetView.findViewById(id);
+            if (btn != null) {
+                btn.setOnClickListener(v -> {
+                    String emoji = btn.getText().toString();
+                    int cursor = etMessage.getSelectionEnd();
+                    etMessage.getText().insert(Math.max(cursor, 0), emoji);
+                    dialog.dismiss();
+                });
+            }
+        }
+
+        dialog.show();
     }
 
     /**

@@ -81,6 +81,12 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         this.messages = messages;
         notifyDataSetChanged();
     }
+
+    /** Returns the text of the last message, or null if empty. */
+    public String getLastMessageText() {
+        if (messages.isEmpty()) return null;
+        return messages.get(messages.size() - 1).getMessageText();
+    }
     
     // ViewHolder for sent messages
     static class SentMessageViewHolder extends RecyclerView.ViewHolder {

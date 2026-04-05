@@ -109,10 +109,8 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         // View contacts button
-        btnViewContacts.setOnClickListener(v -> {
-            Toast.makeText(this, "Contacts list coming soon!", Toast.LENGTH_SHORT).show();
-            // TODO: Open Contacts Activity
-        });
+        btnViewContacts.setOnClickListener(v ->
+                startActivity(new Intent(this, ContactsActivity.class)));
 
         // Set app version
         tvAppVersion.setText("MeshTalk v1.0 Beta");
