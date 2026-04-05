@@ -13,9 +13,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.zedox.meshtalk.adapters.MessageAdapter;
 import com.zedox.meshtalk.ai.EmergencyDetector;
 import com.zedox.meshtalk.ai.TranslationService;
+import com.zedox.meshtalk.database.AppDatabase;
 import com.zedox.meshtalk.models.Message;
+import com.zedox.meshtalk.utils.Constants;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Chat Activity for MeshTalk
@@ -53,6 +57,10 @@ public class ChatActivity extends AppCompatActivity {
     private TranslationService translationService;
     private String userLanguage;
 
+    // Local persistence
+    private AppDatabase db;
+    private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,16 +75,16 @@ public class ChatActivity extends AppCompatActivity {
         isGroupOwner      = getIntent().getBooleanExtra("isGroupOwner", true);
         groupOwnerAddress = getIntent().getStringExtra("groupOwnerAddress");
 
-        currentUserId = getSharedPreferences("MeshTalkPrefs", MODE_PRIVATE)
-                .getString("username", "ybsolanki");
-        userLanguage  = getSharedPreferences("MeshTalkPrefs", MODE_PRIVATE)
-                .getString("language", "en");
+        currentUserId = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
+                .getString(Constants.KEY_USERNAME, "ybsolanki");
+        userLanguage  = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
+                .getString(Constants.KEY_LANGUAGE, "en");
 
         initializeViews();
         setupRecyclerView();
         setupClickListeners();
         initializeServices();
-        loadDemoMessages();
+        loadConversationHistory();
     }
 
     private void initializeViews() {
@@ -129,6 +137,7 @@ public class ChatActivity extends AppCompatActivity {
      * If connection params are present (real WiFi Direct session), start the socket service.
      */
     private void initializeServices() {
+        db = AppDatabase.getInstance(this);
         emergencyDetector = new EmergencyDetector();
         translationService = new TranslationService(this);
 
@@ -189,6 +198,11 @@ public class ChatActivity extends AppCompatActivity {
         etMessage.setText("");
         scrollToBottom();
 
+        // Persist to local DB
+        if (contactId != null) {
+            dbExecutor.execute(() -> db.messageDao().insertMessage(message));
+        }
+
         // Transmit via WiFi Direct socket (or simulate if not connected)
         if (groupOwnerAddress != null) {
             messageService.sendMessage(message);
@@ -248,6 +262,10 @@ public class ChatActivity extends AppCompatActivity {
     private void addReceivedMessage(Message message) {
         messageAdapter.addMessage(message);
         scrollToBottom();
+        // Persist to local DB
+        if (contactId != null) {
+            dbExecutor.execute(() -> db.messageDao().insertMessage(message));
+        }
     }
 
     private void showEmergencyAlert(String text, EmergencyDetector.EmergencyResult result) {
@@ -278,6 +296,30 @@ public class ChatActivity extends AppCompatActivity {
             messageAdapter.addMessage(reply);
             scrollToBottom();
         }, 2000);
+    }
+
+    /**
+     * Load conversation history from the local Room database.
+     * Falls back to demo messages when no contactId is available (pure demo mode).
+     */
+    private void loadConversationHistory() {
+        if (contactId == null) {
+            showDemoModeBanner();
+            loadDemoMessages();
+            return;
+        }
+        dbExecutor.execute(() -> {
+            List<Message> history = db.messageDao().getConversation(currentUserId, contactId);
+            // Mark incoming messages as read now that the user opened the chat
+            db.messageDao().markConversationRead(currentUserId, contactId);
+            runOnUiThread(() -> {
+                if (!history.isEmpty()) {
+                    messageAdapter.setMessages(history);
+                    scrollToBottom();
+                }
+                // If empty, do nothing – the user will start fresh
+            });
+        });
     }
 
     private void loadDemoMessages() {
@@ -316,5 +358,6 @@ public class ChatActivity extends AppCompatActivity {
         super.onDestroy();
         if (messageService != null) messageService.stop();
         if (translationService != null) translationService.close();
+        dbExecutor.shutdown();
     }
 }

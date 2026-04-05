@@ -28,13 +28,11 @@ public class HomeActivity extends AppCompatActivity {
         btnSettings    = findViewById(R.id.btnSettings);
         tvStatus       = findViewById(R.id.tvStatus);
 
-        btnStartChat.setOnClickListener(v -> {
-            // Open chat with a placeholder contact – real contact comes from
-            // WiFi Direct peer selection in MainActivity
-            Intent intent = new Intent(this, ChatActivity.class);
-            intent.putExtra("CONTACT_NAME", "MeshTalk Peer");
-            startActivity(intent);
-        });
+        btnStartChat.setOnClickListener(v ->
+                // Real chat requires a WiFi Direct connection first.
+                // Take the user to the Find Devices screen where they pick a peer;
+                // ChatActivity opens automatically once a connection is established.
+                startActivity(new Intent(this, MainActivity.class)));
 
         btnFindDevices.setOnClickListener(v ->
                 startActivity(new Intent(this, MainActivity.class)));

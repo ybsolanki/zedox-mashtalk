@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private List<String> peerNames = new ArrayList<>();
 
     private boolean isWifiP2pEnabled = false;
+    private WifiP2pDevice selectedDevice = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -193,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void connectToPeer(WifiP2pDevice device) {
+        selectedDevice = device;
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = device.deviceAddress;
 
@@ -255,6 +257,10 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, ChatActivity.class);
             intent.putExtra("isGroupOwner", info.isGroupOwner);
             intent.putExtra("groupOwnerAddress", info.groupOwnerAddress.getHostAddress());
+            if (selectedDevice != null) {
+                intent.putExtra("CONTACT_NAME", selectedDevice.deviceName);
+                intent.putExtra("CONTACT_ID", selectedDevice.deviceAddress);
+            }
             startActivity(intent);
         }
     }

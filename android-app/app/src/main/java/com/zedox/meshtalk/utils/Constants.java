@@ -10,6 +10,16 @@ public class Constants {
     public static final String APP_NAME = "MeshTalk";
     public static final String TEAM_NAME = "ZEDOX";
     public static final String VERSION = "1.0.0";
+
+    // SharedPreferences
+    public static final String PREFS_NAME = "MeshTalkPrefs";
+    public static final String KEY_USERNAME = "username";
+    public static final String KEY_STATUS = "status";
+    public static final String KEY_LANGUAGE = "language";
+    public static final String KEY_CONTACTS = "contacts";
+
+    // QR Code
+    public static final String QR_PREFIX = "MESHTALK:";
     
     // Network
     public static final int SERVER_PORT = 8888;

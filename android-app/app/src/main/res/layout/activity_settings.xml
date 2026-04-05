@@ -88,6 +88,25 @@
                     android:padding="12dp"
                     android:layout_marginBottom="16dp" />
 
+                <!-- Language Picker -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Chat Language (for auto-translate)"
+                    android:textSize="14sp"
+                    android:textColor="@color/light_gray"
+                    android:layout_marginBottom="8dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerLanguage"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@color/dark_surface"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginBottom="16dp"
+                    android:popupBackground="@color/dark_card" />
+
                 <!-- Save Button -->
                 <Button
                     android:id="@+id/btnSaveProfile"
