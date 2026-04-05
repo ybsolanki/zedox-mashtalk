@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.zedox.meshtalk.models.Message;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
