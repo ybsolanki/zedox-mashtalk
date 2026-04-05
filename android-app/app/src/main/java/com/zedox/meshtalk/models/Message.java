@@ -1,12 +1,21 @@
 package com.zedox.meshtalk.models;
 
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
+
 /**
  * Message Model for MeshTalk
  * Represents a single chat message
+ * Also used as Room database entity for local persistence
  * Team ZEDOX - Imagine Cup 2025
  */
+@Entity(tableName = "messages")
 public class Message {
     
+    @PrimaryKey
+    @NonNull
     private String messageId;
     private String senderId;
     private String senderName;
@@ -17,6 +26,8 @@ public class Message {
     private boolean isDelivered;
     private boolean isRead;
     private MessageType type;
+    /** Number of mesh hops this message has already travelled */
+    private int hopCount;
     
     public enum MessageType {
         TEXT,
@@ -25,7 +36,8 @@ public class Message {
         FILE
     }
     
-    // Constructor for text messages
+    // Convenience constructor for text messages (Room will use the full constructor)
+    @Ignore
     public Message(String senderId, String senderName, String receiverId, String messageText) {
         this.messageId = generateMessageId();
         this.senderId = senderId;
@@ -37,12 +49,13 @@ public class Message {
         this.isDelivered = false;
         this.isRead = false;
         this.type = MessageType.TEXT;
+        this.hopCount = 0;
     }
     
-    // Full constructor
-    public Message(String messageId, String senderId, String senderName, String receiverId, 
+    // Full constructor - used by Room for database restoration
+    public Message(@NonNull String messageId, String senderId, String senderName, String receiverId, 
                    String messageText, long timestamp, boolean isSent, boolean isDelivered, 
-                   boolean isRead, MessageType type) {
+                   boolean isRead, MessageType type, int hopCount) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.senderName = senderName;
@@ -53,6 +66,7 @@ public class Message {
         this.isDelivered = isDelivered;
         this.isRead = isRead;
         this.type = type;
+        this.hopCount = hopCount;
     }
     
     // Generate unique message ID
@@ -90,4 +104,7 @@ public class Message {
     
     public MessageType getType() { return type; }
     public void setType(MessageType type) { this.type = type; }
+
+    public int getHopCount() { return hopCount; }
+    public void setHopCount(int hopCount) { this.hopCount = hopCount; }
 }

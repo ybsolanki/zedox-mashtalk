@@ -64,6 +64,28 @@ public class MessageService {
         }
     }
 
+    /**
+     * Start the messaging service using pre-extracted connection parameters.
+     * Use this variant when WifiP2pInfo is not directly available (e.g. from
+     * Intent extras passed to ChatActivity).
+     *
+     * @param isGroupOwner      true if this device is the WiFi Direct group owner
+     * @param groupOwnerAddress IP address of the group owner as a String
+     */
+    public void start(boolean isGroupOwner, String groupOwnerAddress) {
+        this.isGroupOwner = isGroupOwner;
+        if (isGroupOwner) {
+            startServer();
+        } else {
+            try {
+                this.groupOwnerAddress = java.net.InetAddress.getByName(groupOwnerAddress);
+                startClient(this.groupOwnerAddress);
+            } catch (java.net.UnknownHostException e) {
+                Log.e(TAG, "Invalid group owner address: " + groupOwnerAddress, e);
+            }
+        }
+    }
+
     private void startServer() {
         executorService.execute(() -> {
             try {
