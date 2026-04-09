@@ -184,9 +184,10 @@ public class WiFiDirectService {
                 Log.d(TAG, "Server started on port " + SERVER_PORT);
                 
                 while (true) {
-                    Socket client = serverSocket.accept();
+                    // Assign to clientSocket so sendMessage() can reach the peer
+                    clientSocket = serverSocket.accept();
                     Log.d(TAG, "Client connected");
-                    handleClient(client);
+                    handleClient(clientSocket);
                 }
             } catch (IOException e) {
                 Log.e(TAG, "Server error", e);
