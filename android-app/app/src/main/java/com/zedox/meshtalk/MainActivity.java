@@ -169,8 +169,7 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         statusText.setText("Discovering peers...");
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (!hasRequiredWifiPermission()) {
             checkAndRequestPermissions();
             return;
         }
@@ -201,8 +200,7 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         statusText.setText("Connecting to " + device.deviceName + "...");
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (!hasRequiredWifiPermission()) {
             checkAndRequestPermissions();
             return;
         }
@@ -271,6 +269,21 @@ public class MainActivity extends AppCompatActivity {
             statusText.setText("WiFi Direct enabled");
         } else {
             statusText.setText("WiFi Direct disabled");
+        }
+    }
+
+    /**
+     * Returns true if the required WiFi Direct permission has been granted.
+     * On Android 13+ (API 33+) the required permission is NEARBY_WIFI_DEVICES;
+     * on older versions ACCESS_FINE_LOCATION is used instead.
+     */
+    private boolean hasRequiredWifiPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES)
+                    == PackageManager.PERMISSION_GRANTED;
+        } else {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED;
         }
     }
 
