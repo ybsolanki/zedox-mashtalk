@@ -1,0 +1,65 @@
+plugins {
+    id("com.android.application")
+}
+
+android {
+    namespace = "com.zedox.meshtalk"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.zedox.meshtalk"
+        minSdk = 21
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    // AndroidX Core
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+    // CardView for modern UI
+    implementation("androidx.cardview:cardview:1.0.0")
+
+    // Room Database
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
+
+    // RecyclerView
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    // ML Kit Translation
+    implementation("com.google.mlkit:translate:17.0.2")
+
+    // ML Kit Language Identification (used by TranslationService)
+    implementation("com.google.mlkit:language-id:17.0.4")
+
+    // Gson for JSON
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // QR Code Generation and Scanning (ZXing)
+    implementation("com.google.zxing:core:3.5.2")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+}

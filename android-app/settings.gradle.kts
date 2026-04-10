@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "MeshTalk"
-include ':app'
+include(":app")
