@@ -18,6 +18,8 @@ import com.zedox.meshtalk.adapters.MessageAdapter;
 import com.zedox.meshtalk.ai.EmergencyDetector;
 import com.zedox.meshtalk.ai.TranslationService;
 import com.zedox.meshtalk.database.AppDatabase;
+import com.zedox.meshtalk.mesh.ConnectionManager;
+import com.zedox.meshtalk.models.Device;
 import com.zedox.meshtalk.models.Message;
 import com.zedox.meshtalk.utils.Constants;
 import java.util.ArrayList;
@@ -51,8 +53,8 @@ public class ChatActivity extends AppCompatActivity {
     private String contactId;
     private String contactName;
 
-    // WiFi Direct real messaging
-    private MessageService messageService;
+    // Mesh connection manager (wires WiFiDirectService + MessageRouter)
+    private ConnectionManager connectionManager;
     private boolean isGroupOwner;
     private String groupOwnerAddress;
 
@@ -211,41 +213,51 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     /**
-     * Initialize AI services and WiFi Direct MessageService.
-     * If connection params are present (real WiFi Direct session), start the socket service.
+     * Initialize AI services and the mesh ConnectionManager.
+     * If connection params are present (real WiFi Direct session), start the socket layer.
      */
     private void initializeServices() {
         db = AppDatabase.getInstance(this);
         emergencyDetector = new EmergencyDetector();
         translationService = new TranslationService(this);
 
-        messageService = new MessageService();
-        messageService.setMessageListener(new MessageService.MessageListener() {
+        connectionManager = new ConnectionManager(this);
+        connectionManager.setListener(new ConnectionManager.ConnectionManagerListener() {
             @Override
-            public void onConnectionEstablished() {
+            public void onPeersUpdated(List<Device> peers) {
+                // Peer discovery is handled in MainActivity; nothing to do here.
+            }
+
+            @Override
+            public void onConnectionStatusChanged(boolean isConnected) {
+                runOnUiThread(() -> tvContactStatus.setText(
+                        isConnected ? "🟢 Connected via WiFi Direct" : "🔴 Disconnected"));
+            }
+
+            @Override
+            public void onRawMessageReceived(String rawMessage) {
+                try {
+                    Message msg = new com.google.gson.Gson().fromJson(rawMessage, Message.class);
+                    runOnUiThread(() -> handleIncomingMessage(msg));
+                } catch (Exception e) {
+                    android.util.Log.e("ChatActivity", "Failed to parse message: " + rawMessage, e);
+                }
+            }
+
+            @Override
+            public void onError(String error) {
                 runOnUiThread(() ->
-                        tvContactStatus.setText("🟢 Connected via WiFi Direct"));
-            }
-
-            @Override
-            public void onMessageReceived(Message message) {
-                runOnUiThread(() -> handleIncomingMessage(message));
-            }
-
-            @Override
-            public void onMessageSent(Message message) {
-                runOnUiThread(() -> {
-                    message.setDelivered(true);
-                    messageAdapter.notifyDataSetChanged();
-                });
+                        Toast.makeText(ChatActivity.this, "Error: " + error, Toast.LENGTH_SHORT).show());
             }
         });
 
-        // Start real WiFi Direct comms if we came from a peer connection
         if (groupOwnerAddress != null) {
-            messageService.start(isGroupOwner, groupOwnerAddress);
+            // Register peer in routing table so MessageRouter can forward messages.
+            String peerId = contactId != null ? contactId : "peer";
+            connectionManager.setConnectedPeer(peerId, contactName, groupOwnerAddress);
+            connectionManager.startSocket(isGroupOwner, groupOwnerAddress);
         } else {
-            // No real connection – tell the user they are in demo mode
+            // No real connection – tell the user they are in demo mode.
             showDemoModeBanner();
         }
     }
@@ -281,9 +293,9 @@ public class ChatActivity extends AppCompatActivity {
             dbExecutor.execute(() -> db.messageDao().insertMessage(message));
         }
 
-        // Transmit via WiFi Direct socket (or simulate if not connected)
+        // Transmit via ConnectionManager (routes through MessageRouter + WiFiDirectService)
         if (groupOwnerAddress != null) {
-            messageService.sendMessage(message);
+            connectionManager.sendMessage(message, currentUserId);
         } else {
             simulateDelivery(message);
             simulateReceivedMessage(rawText);
@@ -434,7 +446,7 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (messageService != null) messageService.stop();
+        if (connectionManager != null) connectionManager.stop();
         if (translationService != null) translationService.close();
         dbExecutor.shutdown();
     }

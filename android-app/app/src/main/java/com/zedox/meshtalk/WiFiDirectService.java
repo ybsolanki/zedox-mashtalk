@@ -145,6 +145,26 @@ public class WiFiDirectService {
     }
 
     /**
+     * Directly start the socket layer using known connection parameters.
+     * Use this when the WiFi Direct P2P connection was already established
+     * (e.g. by MainActivity) before this service was created.
+     */
+    public void startSocket(boolean isGroupOwner, String groupOwnerAddress) {
+        if (isGroupOwner) {
+            startServer();
+        } else {
+            try {
+                connectToServer(java.net.InetAddress.getByName(groupOwnerAddress));
+            } catch (java.net.UnknownHostException e) {
+                Log.e(TAG, "Invalid group owner address: " + groupOwnerAddress, e);
+                if (listener != null) {
+                    listener.onError("Invalid peer address");
+                }
+            }
+        }
+    }
+
+    /**
      * Send message to connected peer
      */
     public void sendMessage(final String message) {

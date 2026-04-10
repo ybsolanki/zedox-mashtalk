@@ -72,6 +72,28 @@ public class ConnectionManager implements WiFiDirectService.WiFiDirectListener {
         Log.d(TAG, "ConnectionManager stopped");
     }
 
+    /**
+     * Start the socket layer from known connection parameters.
+     * Call this when ChatActivity is launched with a pre-established WiFi Direct
+     * connection (isGroupOwner + groupOwnerAddress from the Intent).
+     */
+    public void startSocket(boolean isGroupOwner, String groupOwnerAddress) {
+        connected = true;
+        wifiDirectService.startSocket(isGroupOwner, groupOwnerAddress);
+        Log.d(TAG, "Socket layer started (isGroupOwner=" + isGroupOwner + ")");
+    }
+
+    /**
+     * Register the connected peer in the routing table so MessageRouter can route.
+     * Must be called before {@link #sendMessage} when using startSocket().
+     */
+    public void setConnectedPeer(String peerId, String peerName, String peerAddress) {
+        Device peer = new Device(peerId, peerName, peerAddress);
+        peer.setConnected(true);
+        messageRouter.addDevice(peer);
+        Log.d(TAG, "Connected peer registered: " + peerName);
+    }
+
     // -------------------------------------------------------------------------
     // Peer discovery & connection
     // -------------------------------------------------------------------------
