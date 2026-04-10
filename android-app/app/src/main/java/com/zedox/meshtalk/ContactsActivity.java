@@ -69,9 +69,12 @@ public class ContactsActivity extends AppCompatActivity {
             recyclerViewContacts.setVisibility(View.VISIBLE);
 
             ContactsAdapter adapter = new ContactsAdapter(contacts, username -> {
-                Intent intent = new Intent(this, ChatActivity.class);
-                intent.putExtra("CONTACT_NAME", username);
-                intent.putExtra("CONTACT_ID", username);
+                // A QR-scanned contact only has a username; there is no active WiFi
+                // Direct socket to that device yet.  Launch peer discovery (MainActivity)
+                // so the user can find and connect to the device, after which
+                // ChatActivity will open automatically with a live connection.
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra("PREFERRED_CONTACT", username);
                 startActivity(intent);
             });
             recyclerViewContacts.setLayoutManager(new LinearLayoutManager(this));

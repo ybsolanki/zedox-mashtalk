@@ -60,6 +60,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean isWifiP2pEnabled = false;
     private WifiP2pDevice selectedDevice = null;
 
+    /**
+     * When launched from ContactsActivity the caller may pass a preferred
+     * MeshTalk username.  If set, the status bar guides the user to find that
+     * peer and the name is forwarded to ChatActivity as CONTACT_NAME.
+     */
+    private String preferredContactName = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +77,15 @@ public class MainActivity extends AppCompatActivity {
 
         initializeViews();
         checkAndRequestPermissions();
+
+        // If launched from ContactsActivity with a preferred contact, read it
+        // and start discovery automatically so the user just needs to tap the device.
+        preferredContactName = getIntent().getStringExtra("PREFERRED_CONTACT");
+        if (preferredContactName != null) {
+            // Kick off discovery as soon as permissions are confirmed (handled in
+            // checkAndRequestPermissions / initializeWifiP2p path).
+            // The status text is updated once WiFi P2P is ready.
+        }
     }
 
     private void initializeViews() {
@@ -153,6 +169,12 @@ public class MainActivity extends AppCompatActivity {
 
         statusText.setText("Ready to discover peers");
         Log.d(TAG, "WiFi P2P initialized");
+
+        // If a contact was requested, start discovery immediately and guide the user.
+        if (preferredContactName != null) {
+            statusText.setText("Looking for \"" + preferredContactName + "\" – tap Discover to find nearby devices");
+            discoverPeers();
+        }
     }
 
     private void discoverPeers() {
@@ -236,9 +258,13 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(View.GONE);
 
         if (peers.isEmpty()) {
-            statusText.setText("No peers found");
+            statusText.setText(preferredContactName != null
+                    ? "No peers found – make sure \"" + preferredContactName + "\" has WiFi Direct enabled"
+                    : "No peers found");
         } else {
-            statusText.setText("Found " + peers.size() + " peer(s)");
+            statusText.setText(preferredContactName != null
+                    ? "Found " + peers.size() + " device(s) – tap \"" + preferredContactName + "\"'s device to connect"
+                    : "Found " + peers.size() + " peer(s)");
         }
 
         Log.d(TAG, "Peer list updated: " + peers.size() + " peers");
@@ -255,7 +281,17 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, ChatActivity.class);
             intent.putExtra("isGroupOwner", info.isGroupOwner);
             intent.putExtra("groupOwnerAddress", info.groupOwnerAddress.getHostAddress());
-            if (selectedDevice != null) {
+
+            // Use the preferred contact name from the QR-contacts flow when available;
+            // otherwise fall back to the device name discovered via WiFi Direct.
+            if (preferredContactName != null) {
+                intent.putExtra("CONTACT_NAME", preferredContactName);
+                if (selectedDevice != null) {
+                    intent.putExtra("CONTACT_ID", selectedDevice.deviceAddress);
+                }
+                // If selectedDevice is null, CONTACT_ID is intentionally omitted so that
+                // ChatActivity falls back gracefully (it handles a null contactId).
+            } else if (selectedDevice != null) {
                 intent.putExtra("CONTACT_NAME", selectedDevice.deviceName);
                 intent.putExtra("CONTACT_ID", selectedDevice.deviceAddress);
             }
