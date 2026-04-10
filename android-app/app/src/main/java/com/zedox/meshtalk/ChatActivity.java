@@ -82,7 +82,7 @@ public class ChatActivity extends AppCompatActivity {
         groupOwnerAddress = getIntent().getStringExtra("groupOwnerAddress");
 
         currentUserId = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
-                .getString(Constants.KEY_USERNAME, "ybsolanki");
+                .getString(Constants.KEY_USERNAME, "User");
         userLanguage  = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
                 .getString(Constants.KEY_LANGUAGE, "en");
 

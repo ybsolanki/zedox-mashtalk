@@ -65,17 +65,37 @@
             app:cardElevation="4dp"
             app:cardBackgroundColor="@color/button_chat">
 
-            <Button
-                android:id="@+id/btnStartChat"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:text="💬  START CHAT"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/white"
-                android:background="@android:color/transparent"
-                android:elevation="0dp"
-                style="?attr/materialButtonOutlinedStyle" />
+                android:layout_height="64dp">
+
+                <Button
+                    android:id="@+id/btnStartChat"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="💬  START CHAT"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:background="@android:color/transparent"
+                    android:elevation="0dp"
+                    style="?attr/materialButtonOutlinedStyle" />
+
+                <!-- Unread message count badge -->
+                <TextView
+                    android:id="@+id/tvUnreadBadge"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="8dp"
+                    android:background="@drawable/badge_background"
+                    android:gravity="center"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+            </FrameLayout>
 
         </androidx.cardview.widget.CardView>
 

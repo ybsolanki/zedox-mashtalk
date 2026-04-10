@@ -42,6 +42,10 @@ public interface MessageDao {
     @Query("SELECT * FROM messages WHERE receiverId = :userId AND isRead = 0")
     List<Message> getUnreadMessages(String userId);
 
+    /** Count unread received messages for a user (used for the home-screen badge) */
+    @Query("SELECT COUNT(*) FROM messages WHERE receiverId = :userId AND isRead = 0")
+    int countUnreadMessages(String userId);
+
     /** Mark all messages in a conversation as read */
     @Query("UPDATE messages SET isRead = 1 " +
            "WHERE senderId = :contactId AND receiverId = :userId")
