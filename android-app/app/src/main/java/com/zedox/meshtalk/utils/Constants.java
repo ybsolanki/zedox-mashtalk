@@ -30,6 +30,22 @@ public class Constants {
     public static final String MESSAGE_TYPE_TEXT = "TEXT";
     public static final String MESSAGE_TYPE_EMERGENCY = "EMERGENCY";
     public static final String MESSAGE_TYPE_BROADCAST = "BROADCAST";
+
+    // Voice Call
+    /** Dedicated TCP port for peer-to-peer audio streaming */
+    public static final int CALL_PORT = 8889;
+
+    // Local broadcast actions (within the same process, via LocalBroadcastManager)
+    /** IncomingCallActivity → ChatActivity: user accepted the incoming call */
+    public static final String ACTION_CALL_ACCEPT = "com.zedox.meshtalk.ACTION_CALL_ACCEPT";
+    /** IncomingCallActivity → ChatActivity: user rejected the incoming call */
+    public static final String ACTION_CALL_REJECT = "com.zedox.meshtalk.ACTION_CALL_REJECT";
+    /** InCallActivity → ChatActivity: local user hung up */
+    public static final String ACTION_CALL_END_LOCAL = "com.zedox.meshtalk.ACTION_CALL_END_LOCAL";
+    /** ChatActivity → InCallActivity: the remote peer ended the call */
+    public static final String ACTION_PEER_CALL_END = "com.zedox.meshtalk.ACTION_PEER_CALL_END";
+    /** ChatActivity → InCallActivity: the remote peer accepted the call (caller side) */
+    public static final String ACTION_CALL_ACCEPTED_BY_PEER = "com.zedox.meshtalk.ACTION_CALL_ACCEPTED_BY_PEER";
     
     // Emergency Keywords (Multi-language)
     public static final String[] EMERGENCY_KEYWORDS = {

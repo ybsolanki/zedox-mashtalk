@@ -54,6 +54,9 @@ dependencies {
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.10.1")
 
+    // LocalBroadcastManager for in-process signalling
+    implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
+
     // QR Code Generation and Scanning (ZXing)
     implementation("com.google.zxing:core:3.5.2")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")

@@ -1,5 +1,10 @@
 package com.zedox.meshtalk;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -9,9 +14,15 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.zedox.meshtalk.adapters.MessageAdapter;
@@ -22,6 +33,7 @@ import com.zedox.meshtalk.mesh.ConnectionManager;
 import com.zedox.meshtalk.models.Device;
 import com.zedox.meshtalk.models.Message;
 import com.zedox.meshtalk.utils.Constants;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -33,9 +45,12 @@ import java.util.concurrent.Executors;
  *   - WiFi Direct messaging (MessageService)
  *   - On-device AI translation (TranslationService / ML Kit)
  *   - Emergency detection (EmergencyDetector)
+ *   - Voice calls (VoiceCallService via IncomingCallActivity / InCallActivity)
  * Team ZEDOX - Imagine Cup 2025
  */
 public class ChatActivity extends AppCompatActivity {
+
+    private static final int REQUEST_RECORD_AUDIO = 201;
 
     private RecyclerView recyclerViewMessages;
     private EditText etMessage;
@@ -67,6 +82,38 @@ public class ChatActivity extends AppCompatActivity {
     private AppDatabase db;
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
 
+    // Active "Calling…" dialog shown to the caller while waiting for a response.
+    private AlertDialog callingDialog;
+
+    // -------------------------------------------------------------------------
+    // LocalBroadcast receivers (IncomingCallActivity / InCallActivity → ChatActivity)
+    // -------------------------------------------------------------------------
+
+    /** Callee accepted the call: send CALL_ACCEPT to peer and open InCallActivity (caller side). */
+    private final BroadcastReceiver callAcceptReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            sendCallSignal(Message.MessageType.CALL_ACCEPT);
+            openInCallActivity();
+        }
+    };
+
+    /** Callee rejected the call: send CALL_REJECT to peer. */
+    private final BroadcastReceiver callRejectReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            sendCallSignal(Message.MessageType.CALL_REJECT);
+        }
+    };
+
+    /** Local user hung up from InCallActivity: forward CALL_END to the peer. */
+    private final BroadcastReceiver callEndLocalReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            sendCallSignal(Message.MessageType.CALL_END);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,7 +138,12 @@ public class ChatActivity extends AppCompatActivity {
         setupClickListeners();
         initializeServices();
         loadConversationHistory();
+        registerCallBroadcastReceivers();
     }
+
+    // -------------------------------------------------------------------------
+    // UI setup
+    // -------------------------------------------------------------------------
 
     private void initializeViews() {
         recyclerViewMessages = findViewById(R.id.recyclerViewMessages);
@@ -124,22 +176,186 @@ public class ChatActivity extends AppCompatActivity {
     private void setupClickListeners() {
         btnBack.setOnClickListener(v -> finish());
         btnSend.setOnClickListener(v -> sendMessage());
-        btnVoiceCall.setOnClickListener(v -> showCallNotSupportedDialog("Voice"));
+        btnVoiceCall.setOnClickListener(v -> initiateVoiceCall());
         btnVideoCall.setOnClickListener(v -> showCallNotSupportedDialog("Video"));
         btnMenu.setOnClickListener(v -> showChatMenu());
         btnEmoji.setOnClickListener(v -> showEmojiPicker());
     }
 
-    /** Show an informative dialog for call features (not available without VoIP stack). */
+    // -------------------------------------------------------------------------
+    // Voice Call – initiation (caller side)
+    // -------------------------------------------------------------------------
+
+    private void initiateVoiceCall() {
+        if (groupOwnerAddress == null) {
+            Toast.makeText(this, "Voice calls require a live Wi-Fi Direct connection.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Runtime permission check for RECORD_AUDIO.
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.RECORD_AUDIO},
+                    REQUEST_RECORD_AUDIO);
+            return;
+        }
+
+        startCallRequest();
+    }
+
+    /** Called after the microphone permission is confirmed. */
+    private void startCallRequest() {
+        // Send CALL_REQUEST signal to peer.
+        sendCallSignal(Message.MessageType.CALL_REQUEST);
+
+        // Show a "Calling…" dialog with a cancel option.
+        callingDialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.calling))
+                .setMessage(contactName)
+                .setNegativeButton(android.R.string.cancel, (d, w) -> {
+                    sendCallSignal(Message.MessageType.CALL_END);
+                    callingDialog = null;
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_RECORD_AUDIO) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startCallRequest();
+            } else {
+                Toast.makeText(this, getString(R.string.mic_permission_required),
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    /** Open the InCallActivity (from the caller side, after CALL_ACCEPT is received). */
+    private void openInCallActivity() {
+        Intent intent = new Intent(this, InCallActivity.class);
+        intent.putExtra("CONTACT_NAME",      contactName);
+        intent.putExtra("CONTACT_ID",        contactId);
+        intent.putExtra("isGroupOwner",      isGroupOwner);
+        intent.putExtra("groupOwnerAddress", groupOwnerAddress);
+        startActivity(intent);
+    }
+
+    // -------------------------------------------------------------------------
+    // Signalling helpers
+    // -------------------------------------------------------------------------
+
+    /** Send a call-control signal (CALL_REQUEST, CALL_ACCEPT, CALL_REJECT, CALL_END). */
+    private void sendCallSignal(Message.MessageType signalType) {
+        if (connectionManager == null || !connectionManager.isConnected()) return;
+        Message signal = new Message(
+                currentUserId, currentUserId,
+                contactId != null ? contactId : "peer",
+                signalType.name());
+        signal.setType(signalType);
+        signal.setSent(true);
+        connectionManager.sendMessage(signal, currentUserId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Incoming call signals (from peer, via onRawMessageReceived)
+    // -------------------------------------------------------------------------
+
+    private void handleCallSignal(Message.MessageType signalType, Message msg) {
+        switch (signalType) {
+            case CALL_REQUEST:
+                handleIncomingCallRequest(msg.getSenderName() != null
+                        ? msg.getSenderName() : contactName);
+                break;
+            case CALL_ACCEPT:
+                handleCallAccepted();
+                break;
+            case CALL_REJECT:
+                handleCallRejected();
+                break;
+            case CALL_END:
+                handlePeerCallEnd();
+                break;
+            default:
+                break;
+        }
+    }
+
+    /** Remote peer wants to call us → show IncomingCallActivity. */
+    private void handleIncomingCallRequest(String callerName) {
+        Intent intent = new Intent(this, IncomingCallActivity.class);
+        intent.putExtra("CALLER_NAME",       callerName);
+        intent.putExtra("CONTACT_ID",        contactId);
+        intent.putExtra("isGroupOwner",      isGroupOwner);
+        intent.putExtra("groupOwnerAddress", groupOwnerAddress);
+        startActivity(intent);
+    }
+
+    /** Remote peer accepted our outgoing call → dismiss "Calling…" dialog, open InCallActivity. */
+    private void handleCallAccepted() {
+        if (callingDialog != null) {
+            callingDialog.dismiss();
+            callingDialog = null;
+        }
+        openInCallActivity();
+    }
+
+    /** Remote peer rejected our outgoing call. */
+    private void handleCallRejected() {
+        if (callingDialog != null) {
+            callingDialog.dismiss();
+            callingDialog = null;
+        }
+        Toast.makeText(this, getString(R.string.call_rejected), Toast.LENGTH_SHORT).show();
+    }
+
+    /** Remote peer ended the call → forward to InCallActivity via LocalBroadcast. */
+    private void handlePeerCallEnd() {
+        LocalBroadcastManager.getInstance(this)
+                .sendBroadcast(new Intent(Constants.ACTION_PEER_CALL_END));
+    }
+
+    // -------------------------------------------------------------------------
+    // LocalBroadcast registration
+    // -------------------------------------------------------------------------
+
+    private void registerCallBroadcastReceivers() {
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+        lbm.registerReceiver(callAcceptReceiver,  new IntentFilter(Constants.ACTION_CALL_ACCEPT));
+        lbm.registerReceiver(callRejectReceiver,  new IntentFilter(Constants.ACTION_CALL_REJECT));
+        lbm.registerReceiver(callEndLocalReceiver, new IntentFilter(Constants.ACTION_CALL_END_LOCAL));
+    }
+
+    private void unregisterCallBroadcastReceivers() {
+        LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+        lbm.unregisterReceiver(callAcceptReceiver);
+        lbm.unregisterReceiver(callRejectReceiver);
+        lbm.unregisterReceiver(callEndLocalReceiver);
+    }
+
+    // -------------------------------------------------------------------------
+    // Unsupported call type dialog (video calls)
+    // -------------------------------------------------------------------------
+
+    /** Show an informative dialog for unsupported call types (e.g. video). */
     private void showCallNotSupportedDialog(String callType) {
         new MaterialAlertDialogBuilder(this)
                 .setTitle(callType + " Call")
-                .setMessage(callType + " calls require a VoIP stack (e.g. WebRTC) and a data connection, "
-                        + "which is not available in offline mesh mode.\n\n"
-                        + "MeshTalk currently supports text messaging over WiFi Direct.")
+                .setMessage(callType + " calls are not yet supported.\n\n"
+                        + "MeshTalk supports voice calls and text messaging over WiFi Direct.")
                 .setPositiveButton("OK", null)
                 .show();
     }
+
+    // -------------------------------------------------------------------------
+    // Chat menu
+    // -------------------------------------------------------------------------
 
     /** Show a popup menu with chat management actions. */
     private void showChatMenu() {
@@ -173,7 +389,6 @@ public class ChatActivity extends AppCompatActivity {
             Toast.makeText(this, "No messages to copy", Toast.LENGTH_SHORT).show();
             return;
         }
-        // MessageAdapter exposes getItem via getMessages; use reflection-free approach
         String text = messageAdapter.getLastMessageText();
         if (text != null) {
             android.content.ClipboardManager cm = (android.content.ClipboardManager)
@@ -212,6 +427,10 @@ public class ChatActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    // -------------------------------------------------------------------------
+    // Services
+    // -------------------------------------------------------------------------
+
     /**
      * Initialize AI services and the mesh ConnectionManager.
      * If connection params are present (real WiFi Direct session), start the socket layer.
@@ -238,7 +457,12 @@ public class ChatActivity extends AppCompatActivity {
             public void onRawMessageReceived(String rawMessage) {
                 try {
                     Message msg = new com.google.gson.Gson().fromJson(rawMessage, Message.class);
-                    runOnUiThread(() -> handleIncomingMessage(msg));
+                    // Route call-control signals separately from regular chat messages.
+                    if (msg.getType() != null && isCallSignal(msg.getType())) {
+                        runOnUiThread(() -> handleCallSignal(msg.getType(), msg));
+                    } else {
+                        runOnUiThread(() -> handleIncomingMessage(msg));
+                    }
                 } catch (Exception e) {
                     android.util.Log.e("ChatActivity", "Failed to parse message: " + rawMessage, e);
                 }
@@ -261,6 +485,17 @@ public class ChatActivity extends AppCompatActivity {
             showDemoModeBanner();
         }
     }
+
+    private static boolean isCallSignal(Message.MessageType type) {
+        return type == Message.MessageType.CALL_REQUEST
+                || type == Message.MessageType.CALL_ACCEPT
+                || type == Message.MessageType.CALL_REJECT
+                || type == Message.MessageType.CALL_END;
+    }
+
+    // -------------------------------------------------------------------------
+    // Messaging
+    // -------------------------------------------------------------------------
 
     private void sendMessage() {
         String rawText = etMessage.getText().toString().trim();
@@ -303,7 +538,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     /**
-     * Handle a message received over WiFi Direct.
+     * Handle a text message received over WiFi Direct.
      * Runs emergency check on the original text, then auto-translates if needed.
      */
     private void handleIncomingMessage(Message message) {
@@ -388,6 +623,10 @@ public class ChatActivity extends AppCompatActivity {
         }, 2000);
     }
 
+    // -------------------------------------------------------------------------
+    // Conversation history
+    // -------------------------------------------------------------------------
+
     /**
      * Load conversation history from the local Room database.
      * Falls back to demo messages when no contactId is available (pure demo mode).
@@ -443,11 +682,17 @@ public class ChatActivity extends AppCompatActivity {
         recyclerViewMessages.scrollToPosition(messageAdapter.getItemCount() - 1);
     }
 
+    // -------------------------------------------------------------------------
+    // Lifecycle
+    // -------------------------------------------------------------------------
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterCallBroadcastReceivers();
         if (connectionManager != null) connectionManager.stop();
         if (translationService != null) translationService.close();
         dbExecutor.shutdown();
     }
 }
+

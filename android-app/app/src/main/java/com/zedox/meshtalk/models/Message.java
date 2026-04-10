@@ -33,7 +33,12 @@ public class Message {
         TEXT,
         IMAGE,
         VOICE,
-        FILE
+        FILE,
+        // Voice-call signalling (never stored in the DB as a real conversation message)
+        CALL_REQUEST,
+        CALL_ACCEPT,
+        CALL_REJECT,
+        CALL_END
     }
     
     // Convenience constructor for text messages (Room will use the full constructor)
