@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -50,6 +51,14 @@ public class IncomingCallActivity extends AppCompatActivity {
 
         btnAccept.setOnClickListener(v -> acceptCall());
         btnReject.setOnClickListener(v -> rejectCall());
+
+        // Treat back-press the same as rejecting the call.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                rejectCall();
+            }
+        });
     }
 
     private void acceptCall() {
@@ -74,8 +83,5 @@ public class IncomingCallActivity extends AppCompatActivity {
     }
 
     /** If the user presses Back, treat it as a rejection. */
-    @Override
-    public void onBackPressed() {
-        rejectCall();
-    }
+    // onBackPress handled via OnBackPressedDispatcher (see onCreate).
 }

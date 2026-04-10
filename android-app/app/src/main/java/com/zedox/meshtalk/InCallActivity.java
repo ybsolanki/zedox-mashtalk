@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -90,6 +91,14 @@ public class InCallActivity extends AppCompatActivity {
 
         btnMute.setOnClickListener(v -> toggleMute());
         btnHangUp.setOnClickListener(v -> endCall(true));
+
+        // Treat back-press the same as hanging up.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                endCall(true);
+            }
+        });
 
         // Listen for peer-initiated call end.
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -182,8 +191,5 @@ public class InCallActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        endCall(true);
-    }
+    // onBackPressed handled via OnBackPressedDispatcher (see onCreate).
 }
