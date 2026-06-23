@@ -51,6 +51,9 @@ import java.util.concurrent.Executors;
 public class ChatActivity extends AppCompatActivity {
 
     private static final int REQUEST_RECORD_AUDIO = 201;
+    private static final String PREF_LAST_GROUP_OWNER_ADDRESS = "last_group_owner_address";
+    private static final String PREF_LAST_IS_GROUP_OWNER = "last_is_group_owner";
+    private static final String PREF_LAST_CONTACT_ID = "last_contact_id";
 
     private RecyclerView recyclerViewMessages;
     private EditText etMessage;
@@ -127,6 +130,7 @@ public class ChatActivity extends AppCompatActivity {
         // WiFi Direct connection params (set when launched from MainActivity)
         isGroupOwner      = getIntent().getBooleanExtra("isGroupOwner", true);
         groupOwnerAddress = getIntent().getStringExtra("groupOwnerAddress");
+        restoreLastSessionIfNeeded();
 
         currentUserId = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
                 .getString(Constants.KEY_USERNAME, "User");
@@ -474,16 +478,39 @@ public class ChatActivity extends AppCompatActivity {
                         Toast.makeText(ChatActivity.this, "Error: " + error, Toast.LENGTH_SHORT).show());
             }
         });
+        connectionManager.start();
 
         if (groupOwnerAddress != null) {
             // Register peer in routing table so MessageRouter can forward messages.
             String peerId = contactId != null ? contactId : "peer";
             connectionManager.setConnectedPeer(peerId, contactName, groupOwnerAddress);
             connectionManager.startSocket(isGroupOwner, groupOwnerAddress);
+            cacheSession();
         } else {
             // No real connection – tell the user they are in demo mode.
             showDemoModeBanner();
         }
+    }
+
+    private void restoreLastSessionIfNeeded() {
+        if (!TextUtils.isEmpty(groupOwnerAddress)) return;
+        String cachedPeerId = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
+                .getString(PREF_LAST_CONTACT_ID, null);
+        if (contactId != null && cachedPeerId != null && !contactId.equals(cachedPeerId)) return;
+
+        groupOwnerAddress = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
+                .getString(PREF_LAST_GROUP_OWNER_ADDRESS, null);
+        isGroupOwner = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(PREF_LAST_IS_GROUP_OWNER, isGroupOwner);
+    }
+
+    private void cacheSession() {
+        getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putString(PREF_LAST_GROUP_OWNER_ADDRESS, groupOwnerAddress)
+                .putBoolean(PREF_LAST_IS_GROUP_OWNER, isGroupOwner)
+                .putString(PREF_LAST_CONTACT_ID, contactId)
+                .apply();
     }
 
     private static boolean isCallSignal(Message.MessageType type) {
@@ -695,4 +722,3 @@ public class ChatActivity extends AppCompatActivity {
         dbExecutor.shutdown();
     }
 }
-

@@ -13,9 +13,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -33,6 +35,7 @@ public class WiFiDirectService {
     private static final String TAG = "WiFiDirectService";
     private static final int SERVER_PORT = 8888;
     private static final int SOCKET_TIMEOUT = 5000;
+    private static final int RECONNECT_DELAY_MS = 1500;
 
     private Context context;
     private WifiP2pManager wifiP2pManager;
@@ -44,6 +47,15 @@ public class WiFiDirectService {
     private boolean isConnected = false;
     private ServerSocket serverSocket;
     private Socket clientSocket;
+    private BufferedWriter messageWriter;
+    private Thread socketThread;
+    private Thread readThread;
+    private volatile boolean socketLayerRunning = false;
+    private volatile boolean reconnectScheduled = false;
+
+    private boolean desiredSession = false;
+    private boolean desiredIsGroupOwner = false;
+    private InetAddress desiredGroupOwnerAddress;
     
     private WiFiDirectListener listener;
 
@@ -150,18 +162,20 @@ public class WiFiDirectService {
      * (e.g. by MainActivity) before this service was created.
      */
     public void startSocket(boolean isGroupOwner, String groupOwnerAddress) {
-        if (isGroupOwner) {
-            startServer();
-        } else {
+        desiredSession = true;
+        desiredIsGroupOwner = isGroupOwner;
+        if (!isGroupOwner) {
             try {
-                connectToServer(java.net.InetAddress.getByName(groupOwnerAddress));
+                desiredGroupOwnerAddress = InetAddress.getByName(groupOwnerAddress);
             } catch (java.net.UnknownHostException e) {
                 Log.e(TAG, "Invalid group owner address: " + groupOwnerAddress, e);
                 if (listener != null) {
                     listener.onError("Invalid peer address");
                 }
+                return;
             }
         }
+        startSocketLayer();
     }
 
     /**
@@ -170,10 +184,12 @@ public class WiFiDirectService {
     public void sendMessage(final String message) {
         new Thread(() -> {
             try {
-                if (clientSocket != null && clientSocket.isConnected()) {
-                    OutputStream outputStream = clientSocket.getOutputStream();
-                    outputStream.write(message.getBytes());
-                    outputStream.flush();
+                if (clientSocket != null && clientSocket.isConnected() && messageWriter != null) {
+                    synchronized (this) {
+                        messageWriter.write(message);
+                        messageWriter.newLine();
+                        messageWriter.flush();
+                    }
                     Log.d(TAG, "Message sent: " + message);
                 } else {
                     Log.e(TAG, "No active connection to send message");
@@ -198,67 +214,159 @@ public class WiFiDirectService {
      * Start server socket to receive connections
      */
     private void startServer() {
-        new Thread(() -> {
+        socketThread = new Thread(() -> {
             try {
                 serverSocket = new ServerSocket(SERVER_PORT);
                 Log.d(TAG, "Server started on port " + SERVER_PORT);
-                
-                while (true) {
-                    // Assign to clientSocket so sendMessage() can reach the peer
+
+                while (socketLayerRunning) {
                     clientSocket = serverSocket.accept();
                     Log.d(TAG, "Client connected");
                     handleClient(clientSocket);
                 }
             } catch (IOException e) {
-                Log.e(TAG, "Server error", e);
+                if (socketLayerRunning) {
+                    Log.e(TAG, "Server error", e);
+                    notifyErrorOnMainThread("Connection error");
+                }
+            } finally {
+                closeServerSocket();
             }
-        }).start();
+        }, "WiFiDirect-Server");
+        socketThread.start();
     }
 
     /**
      * Connect to server as client
      */
     private void connectToServer(InetAddress serverAddress) {
-        new Thread(() -> {
+        socketThread = new Thread(() -> {
             try {
                 clientSocket = new Socket();
                 clientSocket.connect(new InetSocketAddress(serverAddress, SERVER_PORT), SOCKET_TIMEOUT);
                 Log.d(TAG, "Connected to server: " + serverAddress.getHostAddress());
-                
                 handleClient(clientSocket);
             } catch (IOException e) {
-                Log.e(TAG, "Client connection error", e);
-                if (listener != null) {
-                    new Handler(Looper.getMainLooper()).post(() -> 
-                        listener.onError("Failed to connect to peer")
-                    );
+                if (socketLayerRunning) {
+                    Log.e(TAG, "Client connection error", e);
+                    socketLayerRunning = false;
+                    closeClientSocket();
+                    notifyConnectionState(false);
+                    notifyErrorOnMainThread("Failed to connect to peer");
+                    scheduleReconnect();
                 }
             }
-        }).start();
+        }, "WiFiDirect-Client");
+        socketThread.start();
     }
 
     /**
      * Handle client connection for reading messages
      */
     private void handleClient(Socket socket) {
-        try {
-            InputStream inputStream = socket.getInputStream();
-            byte[] buffer = new byte[1024];
-            int bytes;
-            
-            while ((bytes = inputStream.read(buffer)) != -1) {
-                String message = new String(buffer, 0, bytes);
-                Log.d(TAG, "Message received: " + message);
-                
-                if (listener != null) {
+        notifyConnectionState(true);
+        readThread = new Thread(() -> {
+            try {
+                messageWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                String message;
+                while (socketLayerRunning && (message = reader.readLine()) != null) {
                     String finalMessage = message;
-                    new Handler(Looper.getMainLooper()).post(() -> 
-                        listener.onMessageReceived(finalMessage)
-                    );
+                    Log.d(TAG, "Message received: " + finalMessage);
+                    if (listener != null) {
+                        new Handler(Looper.getMainLooper()).post(() ->
+                                listener.onMessageReceived(finalMessage));
+                    }
+                }
+            } catch (IOException e) {
+                if (socketLayerRunning) {
+                    Log.e(TAG, "Error reading message", e);
+                }
+            } finally {
+                messageWriter = null;
+                closeClientSocket();
+                notifyConnectionState(false);
+                if (desiredSession && desiredIsGroupOwner) {
+                    socketLayerRunning = true;
+                } else {
+                    socketLayerRunning = false;
+                    if (desiredSession && !desiredIsGroupOwner) {
+                        scheduleReconnect();
+                    }
                 }
             }
+        }, "WiFiDirect-Read");
+        readThread.start();
+
+        try {
+            readThread.join();
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private synchronized void startSocketLayer() {
+        if (!desiredSession || socketLayerRunning) return;
+        socketLayerRunning = true;
+        if (desiredIsGroupOwner) {
+            startServer();
+        } else if (desiredGroupOwnerAddress != null) {
+            connectToServer(desiredGroupOwnerAddress);
+        }
+    }
+
+    private void scheduleReconnect() {
+        if (reconnectScheduled) return;
+        reconnectScheduled = true;
+        new Thread(() -> {
+            try {
+                Thread.sleep(RECONNECT_DELAY_MS);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+                reconnectScheduled = false;
+                return;
+            }
+            synchronized (this) {
+                reconnectScheduled = false;
+                if (!desiredSession || desiredIsGroupOwner) return;
+                if (isConnected) return;
+                startSocketLayer();
+            }
+        }, "WiFiDirect-Reconnect").start();
+    }
+
+    private void notifyConnectionState(boolean connected) {
+        isConnected = connected;
+        if (listener != null) {
+            new Handler(Looper.getMainLooper()).post(() -> listener.onConnectionChanged(connected));
+        }
+    }
+
+    private void notifyErrorOnMainThread(String error) {
+        if (listener != null) {
+            new Handler(Looper.getMainLooper()).post(() -> listener.onError(error));
+        }
+    }
+
+    private void closeServerSocket() {
+        try {
+            if (serverSocket != null) {
+                serverSocket.close();
+                serverSocket = null;
+            }
         } catch (IOException e) {
-            Log.e(TAG, "Error reading message", e);
+            Log.w(TAG, "Error closing server socket", e);
+        }
+    }
+
+    private void closeClientSocket() {
+        try {
+            if (clientSocket != null) {
+                clientSocket.close();
+                clientSocket = null;
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Error closing client socket", e);
         }
     }
 
@@ -287,12 +395,12 @@ public class WiFiDirectService {
      */
     public void cleanup() {
         try {
-            if (serverSocket != null) {
-                serverSocket.close();
-            }
-            if (clientSocket != null) {
-                clientSocket.close();
-            }
+            desiredSession = false;
+            socketLayerRunning = false;
+            reconnectScheduled = false;
+            messageWriter = null;
+            closeClientSocket();
+            closeServerSocket();
             if (channel != null) {
                 wifiP2pManager.removeGroup(channel, null);
             }
@@ -346,26 +454,26 @@ public class WiFiDirectService {
                 try {
                     wifiP2pManager.requestConnectionInfo(channel, info -> {
                         if (info.groupFormed) {
-                            isConnected = true;
                             Log.d(TAG, "Connected. Group Owner: " + info.isGroupOwner);
-                            
-                            if (info.isGroupOwner) {
-                                // This device is server
-                                startServer();
-                            } else {
-                                // This device is client
-                                connectToServer(info.groupOwnerAddress);
-                            }
-                            
-                            if (listener != null) {
-                                listener.onConnectionChanged(true);
+
+                            desiredSession = true;
+                            desiredIsGroupOwner = info.isGroupOwner;
+                            desiredGroupOwnerAddress = info.groupOwnerAddress;
+
+                            synchronized (WiFiDirectService.this) {
+                                if (!socketLayerRunning) {
+                                    startSocketLayer();
+                                } else {
+                                    notifyConnectionState(true);
+                                }
                             }
                         } else {
-                            isConnected = false;
                             Log.d(TAG, "Disconnected");
-                            
-                            if (listener != null) {
-                                listener.onConnectionChanged(false);
+                            socketLayerRunning = false;
+                            closeClientSocket();
+                            notifyConnectionState(false);
+                            if (desiredSession && !desiredIsGroupOwner) {
+                                scheduleReconnect();
                             }
                         }
                     });

@@ -129,18 +129,37 @@ public class VoiceCallService {
 
     private void startClient() {
         connectThread = new Thread(() -> {
-            try {
-                callSocket = new Socket();
-                callSocket.connect(
-                        new InetSocketAddress(InetAddress.getByName(peerAddress), Constants.CALL_PORT),
-                        CONNECT_TIMEOUT_MS);
-                Log.d(TAG, "Connected to audio server at " + peerAddress);
-                onSocketReady();
-            } catch (IOException e) {
-                if (running) {
-                    Log.e(TAG, "Audio client error", e);
-                    notifyError("Cannot connect to audio stream");
+            if (peerAddress == null || peerAddress.trim().isEmpty()) {
+                notifyError("Missing peer address");
+                return;
+            }
+
+            long deadline = System.currentTimeMillis() + CONNECT_TIMEOUT_MS;
+            while (running && System.currentTimeMillis() < deadline) {
+                try {
+                    callSocket = new Socket();
+                    callSocket.connect(
+                            new InetSocketAddress(InetAddress.getByName(peerAddress), Constants.CALL_PORT),
+                            2500);
+                    callSocket.setKeepAlive(true);
+                    Log.d(TAG, "Connected to audio server at " + peerAddress);
+                    onSocketReady();
+                    return;
+                } catch (IOException e) {
+                    closeQuietly(callSocket);
+                    callSocket = null;
+                    try {
+                        Thread.sleep(400);
+                    } catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 }
+            }
+
+            if (running) {
+                Log.e(TAG, "Audio client connection timed out");
+                notifyError("Cannot connect to audio stream");
             }
         }, "VoiceCall-Client");
         connectThread.start();
