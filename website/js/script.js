@@ -66,9 +66,6 @@ document.querySelectorAll('[data-aos]').forEach(element => {
 const downloadBtn = document.getElementById('downloadBtn');
 if (downloadBtn) {
     downloadBtn.addEventListener('click', () => {
-        // Show coming soon message
-        alert('🚀 MeshTalk is currently in development for Imagine Cup 2025!\n\n✅ Star our GitHub repo to get notified when we launch!\n\n📱 Expected Release: March 2025');
-        
         // Optional: Track click (you can add analytics here)
         console.log('Download button clicked - redirecting to GitHub');
         
